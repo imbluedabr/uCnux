@@ -14,7 +14,7 @@ uCnux is a toy oprating system for extremely resource constrained microcontrolle
 2. run `make kernel.elf`
 3. profit
 
-> ![NOTE]
+> [!NOTE]
 > the build system is still in its early stages so this is subject to change.
 
 
