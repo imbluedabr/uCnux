@@ -18,8 +18,8 @@ $(shell echo "#define BOARD_TYPE $(CONFIG_BOARD_TYPE)" >> $(SETTINGS_FILE))
 ifeq ($(CONFIG_BOARD_MCXA153), y)
 ARCH = armv8-m
 BOARD = mcxa153
-TOOLCHAIN = ~/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-eabi/bin/arm-none-eabi
-ARCH_CFLAGS = -march=armv8-m.main -mthumb -std=gnu11 -DCPU_MCXA153VFM
+TOOLCHAIN = arm-none-eabi
+ARCH_CFLAGS = -mcpu=cortex-m33 -mthumb -std=gnu11 -DCPU_MCXA153VFM
 ARCH_LDFLAGS =
 $(shell echo "#define ARCH_MCXA153" >> $(SETTINGS_FILE))
 endif
