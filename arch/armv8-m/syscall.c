@@ -4,23 +4,15 @@
 #include <board/board.h>
 #include <arch/armv8-m/proc.h>
 #include <arch/armv8-m/syscall.h>
+#include <uapi/syscalls.h>
 #include <lib/kprint.h>
 #include <stddef.h>
 
 typedef void (*syscall_t)(struct exception_frame*);
 
+syscall_t table[SYSCALL_COUNT] = {
 
-[[noreturn]] void exit_syscall()
-{
-    asm volatile(
-        "svc %0"
-        :
-        : "I"(SYS_RET)
-        : "memory"
-    );
-
-    __builtin_unreachable();
-}
+};
 
 /*  Syscalls:
  *      so syscalls have to be preemptible but i dont want to deal with nested interrupt preemption,

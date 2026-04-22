@@ -1,0 +1,94 @@
+#pragma once
+
+typedef enum {
+    // filesystem api
+    SYS_READ,
+    SYS_WRITE,
+    SYS_OPEN,
+    SYS_CLOSE,
+    SYS_FSTAT,
+    SYS_LSEEK,
+    SYS_IOCTL,
+    SYS_ACCESS,
+    SYS_SELECT,
+    SYS_FCNTL,
+    SYS_FLOCK,
+    SYS_FSYNC,
+    SYS_FTRUNCATE,
+    SYS_CHDIR,
+    SYS_MKDIR,
+    SYS_RMDIR,
+    SYS_CHROOT,
+    SYS_RENAME,
+    SYS_LINK,
+    SYS_UNLINK,
+    SYS_SYMLINK,
+    SYS_READLINK,
+    SYS_MKNOD,
+    SYS_FSTATFS,
+    SYS_FCHMOD,
+    SYS_FCHOWN,
+    SYS_UMASK,
+    SYS_SYNC,
+    SYS_MOUNT,
+    SYS_UMOUNT,
+
+    // network api
+    SYS_SOCKET,
+    SYS_CONNECT,
+    SYS_ACCEPT,
+    SYS_SEND,
+    SYS_RECV,
+    SYS_SHUTDOWN,
+    SYS_BIND,
+    SYS_LISTEN,
+    SYS_GETSOCKNAME,
+    SYS_GETPEERNAME,
+    SYS_GETSOCKOPT,
+    SYS_SETSOCKOPT,
+    SYS_SETHOSTNAME,
+
+    // process api
+    SYS_SBRK,
+    SYS_GETPID,
+    SYS_VFORK,
+    SYS_EXECVE,
+    SYS_POSIX_SPAWN,
+    SYS_EXIT,
+    SYS_WAIT,
+    SYS_KILL,
+    SYS_KILLPG,
+    SYS_SIGSETMASK,
+    SYS_PTRACE,
+    SYS_GETRLIMIT,
+    SYS_GETRUSAGE,
+    SYS_SETPGRP,
+    SYS_GETPGRP,
+
+    // timer api
+    SYS_GETITIMER,
+    SYS_SETITIMER,
+    SYS_GETTIMEOFDAY,
+    SYS_SETTIMEOFDAY,
+    SYS_UTIMES,
+
+    // user/group api
+    SYS_GETUID,
+    SYS_GETGID,
+    SYS_SETREUID,
+    SYS_SETREGID,
+    SYS_GETGROUPS,
+    SYS_SETGROUPS,
+
+    // misc api
+    SYS_VHANGUP,
+    SYS_SYSCTL,
+    SYS_UNAME,
+    SYS_REBOOT,
+    SYS_PIPE,
+
+    SYSCALL_COUNT
+} syscall_e;
+
+
+
