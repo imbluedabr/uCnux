@@ -19,13 +19,13 @@ ifeq ($(CONFIG_BOARD_MCXA153), y)
 ARCH = armv8-m
 BOARD = mcxa153
 TOOLCHAIN = arm-none-eabi
-ARCH_CFLAGS = -mcpu=cortex-m33 -mthumb -std=gnu11 -DCPU_MCXA153VFM
+ARCH_CFLAGS = -mcpu=cortex-m33 -mthumb -mfloat-abi=soft -lgcc -std=gnu11 -DCPU_MCXA153VFM
 ARCH_LDFLAGS =
 $(shell echo "#define BOARD_MCXA153" >> $(SETTINGS_FILE))
 endif
 
 # the filesystems
-FS_SELECT = fs/fs.c
+FS_SELECT = fs/vfs.c
 
 ifeq ($(CONFIG_FS_FATFS), y)
 FS_SELECT += fs/fatfs.c

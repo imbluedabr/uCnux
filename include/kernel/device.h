@@ -1,13 +1,8 @@
 #pragma once
 #include <stddef.h>
 #include <stdint.h>
+#include <uapi/sys/types.h>
 #include <kernel/proc.h>
-
-typedef uint8_t dev_t;
-
-#define MKDEV(MAJOR, MINOR) ((MAJOR << 4) | MINOR)
-#define MAJOR(DEVNO) (DEVNO >> 4)
-#define MINOR(DEVNO) (DEVNO & 0xF)
 
 //maximum of io_request's that can be allocated at one time
 #define IO_REQUEST_MAX_MEMUSAGE 8

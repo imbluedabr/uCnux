@@ -2,7 +2,7 @@
 #include <kernel/alloc.h>
 #include <kernel/time.h>
 #include <board/board.h>
-#include <uapi/majors.h>
+#include <kernel/majors.h>
 #include <lib/kprint.h>
 #include <stddef.h>
 #include <stdbool.h>

@@ -1,7 +1,7 @@
 #include <drivers/usart.h>
 #include <kernel/alloc.h>
 #include <kernel/settings.h>
-#include <uapi/majors.h>
+#include <kernel/majors.h>
 #include "mcxa.h"
 
 //build table of available backends
