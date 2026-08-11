@@ -34,10 +34,6 @@ int builtin_cat(int argc, char** argv)
         }
         int count = 0;
         while((count = read(fd, &data_buff, sizeof(data_buff))) > 0) {
-            if (count < 0) {
-                puts("cat: read error\n");
-                return -1;
-            }
             write(STDOUT_FILENO, data_buff, count);
             memset(data_buff, 0, sizeof(data_buff));
         }
