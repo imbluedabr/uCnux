@@ -7,7 +7,7 @@
 
 int stat(const char* pathname, struct stat* statbuf) {
     int fd = open(pathname, O_RDONLY);
-    if (!fd) return -ENOENT;
+    if (fd < 0) return -ENOENT;
     int status =  fstat(fd, statbuf);
     close(fd);
     return status;
