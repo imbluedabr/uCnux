@@ -99,7 +99,9 @@ inline struct file* proc_fd_get(struct proc* p, int fd)
 {
     if (fd == 255) return NULL;
     if (p->local_fd_table[fd] == 255) return NULL;
-    return &vfs_file_table[p->local_fd_table[fd]];
+    struct file* f = &vfs_file_table[p->local_fd_table[fd]];
+    if (f->i == NULL) return NULL;
+    return f;
 }
 
 inline int proc_fd_add(struct proc* p, struct file* f)
