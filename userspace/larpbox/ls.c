@@ -51,8 +51,10 @@ int builtin_ls(int argc, char** argv)
     while (readdir(dir, &dirbuff, 1) == 1) {
         if (!(options & LS_ALL) && (strcmp(dirbuff.d_name, ".") == 0 || strcmp(dirbuff.d_name, "..") == 0)) continue;
         if (options & LS_LIST) {
-            struct stat statbuff;
-            stat(dirbuff.d_name, &statbuff);
+            struct stat statbuff = {0};
+            char newpath[32] = {0};
+            snprintf(newpath, 32, "%s/%s", path, dirbuff.d_name);
+            stat(newpath, &statbuff);
             printf("%o %d %d:%d\t%d\t%s\n", statbuff.st_mode, statbuff.st_nlink, statbuff.st_uid, statbuff.st_gid, statbuff.st_size, dirbuff.d_name);
         } else {
             printf("%s ", dirbuff.d_name);
