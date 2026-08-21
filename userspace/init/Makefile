@@ -22,8 +22,8 @@ init: init.o
 all: clean install
 
 install: init
-	cp init $(INSTALL_DIR)
+	mv init $(INSTALL_DIR)
 
 clean:
-	rm -f *.o *.elf sh
+	rm -f *.o *.elf
 

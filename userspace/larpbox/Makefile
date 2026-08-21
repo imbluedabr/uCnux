@@ -24,8 +24,8 @@ larpbox: $(OBJS)
 all: clean install
 
 install: larpbox
-	cp larpbox $(INSTALL_DIR)
+	mv larpbox $(INSTALL_DIR)
 
 clean:
-	rm -f *.o *.elf sh
+	rm -f *.o *.elf larpbox
 
