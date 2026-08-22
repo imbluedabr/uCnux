@@ -17,7 +17,7 @@ enum bus_types : uint8_t {
 
 //bus device descriptors, contains info about the location and type of the device on the bus
 struct mmio_bus_desc {
-    const void* base;
+    void* base;
     uint16_t vendor_id;
     uint8_t major;
     uint8_t irq;
