@@ -7,28 +7,6 @@
 #include "mcxa.h"
 #include "lpc55s69.h"
 
-//build table of available backends
-static const struct usart_impl impl_table[] = {
-#ifdef USART_DRIVER_MCXA
-    [0] = {
-        .init = &usart_mcxa_init,
-        .readb = &usart_mcxa_readb,
-        .writeb = &usart_mcxa_writeb,
-        .ioctl = &usart_mcxa_ioctl,
-        .destroy = &usart_mcxa_destroy
-    }
-#endif
-#ifdef USART_DRIVER_LPC55S69
-    [1] = {
-        .init = &usart_lpc55s69_init,
-        .readb = &usart_lpc55s69_readb,
-        .writeb = &usart_lpc55s69_writeb,
-        .ioctl = &usart_lpc55s69_ioctl,
-        .destroy = &usart_lpc55s69_destroy
-    }
-#endif
-};
-
 const int usart_baud_rates[11] = {
     110,
     300,
@@ -43,69 +21,46 @@ const int usart_baud_rates[11] = {
     115200
 };
 
+
+static const struct usart_impl impl[2] = {
+    {
+        .init = usart_mcxa_init,
+        .read = usart_mcxa_read,
+        .write = usart_mcxa_write
+    },
+    {
+        .init = usart_lpc55s69_init,
+        .read = usart_lpc55s69_read,
+        .write = usart_lpc55s69_write
+    }
+};
+
+static struct dev_ops usart_ops = {
+};
+
 struct device_driver usart_driver = {
-    .create = &usart_create,
-    .destroy = &usart_destroy,
-    .ioctl = &usart_ioctl,
-    .readb = &usart_readb,
-    .writeb = &usart_writeb,
-    .update = &usart_update,
-    .instances = NULL,
+    .probe = usart_probe,
     .name = "usart",
-    .instance_count = 0
+    .bus_accept = BUS_MMIO
 };
 
 void usart_init()
 {
-    driver_table[USART_MAJOR] = &usart_driver;
+    register_driver(USART_MAJOR, &usart_driver);
 }
 
-struct device* usart_create(void* desc)
+struct device* usart_probe(struct bus_device* parent, const void* descriptor)
 {
-    struct usart_device* usart = kzalloc(sizeof(struct usart_device));
-    if (usart == NULL) {
-        return NULL;
-    }
-
-    usart->base.driver = &usart_driver;
-    struct usart_desc* d = desc;
-    usart->base.impl = d->type;
-    impl_table[d->type].init(usart, d);
-
-    return &usart->base;
+    struct usart_device* dev = kzalloc(sizeof(struct usart_device));
+    if (!dev) return NULL;
+    const struct mmio_bus_desc* desc = descriptor;
+    dev->usart_base = desc->base;
+    
+    impl[desc->vendor_id].init(dev, desc);
+    usart_ops.read = impl[desc->vendor_id].read;
+    usart_ops.write = impl[desc->vendor_id].write;
+    
+    return &dev->base;
 }
-
-int usart_destroy(struct device* dev)
-{
-    return -1;
-}
-
-int usart_ioctl(struct device* dev, int op, void* arg)
-{
-    struct usart_device* usart = (struct usart_device*) dev;
-    return impl_table[usart->base.impl].ioctl(usart, op, arg);
-}
-
-int usart_readb(struct device* dev)
-{
-    struct usart_device* usart = (struct usart_device*) dev;
-    return impl_table[usart->base.impl].readb(usart);
-}
-
-int usart_writeb(struct device* dev, char val)
-{
-    struct usart_device* usart = (struct usart_device*) dev;
-    return impl_table[usart->base.impl].writeb(usart, val);
-}
-
-void usart_update(struct device* dev)
-{
-    struct io_request* req = device_peek_request(dev);
-    if (!req) {
-        return;
-    }
-    kerr("usart: devreq is not suported by usart driver!\n");
-}
-
 
 

@@ -3,7 +3,7 @@
 
 #define CALC_BAUD(BAUD) (12000000/(16*BAUD) - 1)
 
-void usart_lpc55s69_init(struct usart_device* usart, struct usart_desc* desc)
+void usart_lpc55s69_init(struct usart_device* usart, const struct mmio_bus_desc* desc)
 {
     //enable ioconn module
     SYSCON->AHBCLKCTRLX[0] |= SYSCON_AHBCLKCTRL0_IOCON(1);
@@ -23,14 +23,12 @@ void usart_lpc55s69_init(struct usart_device* usart, struct usart_desc* desc)
 
     //setup usart
     USART0->CFG = USART_CFG_ENABLE(1) | USART_CFG_DATALEN(1); //8 data bits, no parity, 1 stop bit
-    USART0->BRG = CALC_BAUD(usart_baud_rates[desc->baud]);
+    USART0->BRG = CALC_BAUD(usart_baud_rates[115200]);
     USART0->OSR = USART_OSR_OSRVAL(15); //16x oversampling
     USART0->FIFOCFG = USART_FIFOCFG_ENABLETX(1) | USART_FIFOCFG_ENABLERX(1) | USART_FIFOCFG_EMPTYTX(1) | USART_FIFOCFG_EMPTYRX(1); //enable fifo's and reset the tx/rx fifo
-    
-    usart->usart_base = USART0;
 }
 
-int usart_lpc55s69_readb(struct usart_device* usart)
+static inline int readb(struct usart_device* usart)
 {
     if (USART0->FIFOSTAT & USART_FIFOSTAT_RXNOTEMPTY_MASK) {
         char c = USART0->FIFORD;
@@ -40,20 +38,38 @@ int usart_lpc55s69_readb(struct usart_device* usart)
     return -1;
 }
 
-int usart_lpc55s69_writeb(struct usart_device* usart, uint8_t val)
+static inline int writeb(struct usart_device* usart, uint8_t val)
 {
     if (!(USART0->FIFOSTAT & USART_FIFOSTAT_TXNOTFULL_MASK)) return -1;
     USART0->FIFOWR = val;
     return 0;
 }
 
-int usart_lpc55s69_ioctl(struct usart_device* usart, int op, void* arg)
+ssize_t usart_lpc55s69_read(struct file* f, void* buff, size_t count)
 {
-    return -1;
+    struct usart_device* usart = (struct usart_device*) f->i->devfs.dev;
+    uint32_t i;
+    for (i = 0; i < count; i++) {
+        int c;
+        while ((c = readb(usart)) < 0) {
+            if (f->flags & O_NONBLOCK) return i;
+        }
+        ((uint8_t*) buff)[i] = c;
+    }
+
+    return i;
 }
 
-void usart_lpc55s69_destroy(struct usart_device* usart)
+ssize_t usart_lpc55s69_write(struct file* f, const void* buff, size_t count)
 {
-    
+    struct usart_device* usart = (struct usart_device*) f->i->devfs.dev;
+    uint32_t i;
+    for (i = 0; i < count; i++) {
+        while ((writeb(usart, ((uint8_t*) buff)[i])) < 0) {
+            if (f->flags & O_NONBLOCK) return i;
+        }
+    }
+
+    return i;   
 }
 
