@@ -97,7 +97,7 @@ struct file_ops {
     //inode operations
     int (*link)(struct inode* dir, struct inode* target, const char* name);
     int (*unlink)(struct inode* dir, const char* name);
-    int (*close)(struct inode* targer);
+    int (*close)(struct inode* target);
 
     //filesystem lookup function
     ino_t (*lookup)(struct inode* dir, const char* name); //lookup an inode inside a dir
