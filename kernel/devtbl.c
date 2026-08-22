@@ -9,7 +9,7 @@ void list_devices(int major)
 
     struct device* current = drv->instances;
     for (int i = 0; i < drv->instance_count; i++) {
-        if (!current) {
+        if (!current)  {
             kerr("dev: %s: device list corrupted\n", drv->name);
             break;
         }
@@ -18,18 +18,26 @@ void list_devices(int major)
     }
 }
 
-void devtbl_init()
+void walk_dt(struct bus_device* parent, const dt_node_t* node)
 {
-    dev_t devno;
-    for (int i = 0; i < static_device_table_size; i++) {
-        const device_node_t* n = &static_device_table[i];
-        const char* name = driver_table[n->major]->name;
-        if (!n->preinit) {
-            if (device_create(&devno, n->major, n->desc) == NULL) {
-                kerr("dev: %s: failed to create device\n", name);
-                continue;
-            }
-        }
+    struct device* dev;
+    if (!parent) { //the first layer is always an 
+        const struct mmio_desc* desc = node->desc;
+        dev = device_probe(desc->major, NULL, desc);
+    } else {
+        dev = parent->bus_ops->probe(parent, node->desc);
+    }
+    if (!dev) return;
+
+    for (const dt_node_t* child = node->child; child; child = child->next) {
+        walk_dt((struct bus_device*) dev, child);
+    }
+}
+
+void devtbl_init(const dt_node_t* device_tree)
+{
+    for (const dt_node_t* child = device_tree->child; child; child = child->next) {
+        walk_dt(NULL, child);
     }
 
     for (int i = 0; i < DRIVER_TABLE_LEN; i++) {

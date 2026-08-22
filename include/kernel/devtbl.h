@@ -1,14 +1,11 @@
 #pragma once
 #include <stdint.h>
 
-typedef struct {
-    uint8_t major;      //major number of the driver
-    uint8_t preinit;    //was the device preinitialized by the board boot code
-    const void* desc;   //descriptor of the device
-} device_node_t;
+typedef struct dt_node {
+    const void* desc;
+    const struct dt_node* child;
+    const struct dt_node* next;
+} dt_node_t;
 
-extern const device_node_t static_device_table[];
-extern const int static_device_table_size;
-
-void devtbl_init();
+void devtbl_init(const dt_node_t* device_tree);
 
