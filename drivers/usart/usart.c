@@ -25,13 +25,13 @@ const int usart_baud_rates[11] = {
 static const struct usart_impl impl[2] = {
     {
         .init = usart_mcxa_init,
-        .read = usart_mcxa_read,
-        .write = usart_mcxa_write
+        .ll_read = usart_mcxa_read,
+        .ll_write = usart_mcxa_write
     },
     {
         .init = usart_lpc55s69_init,
-        .read = usart_lpc55s69_read,
-        .write = usart_lpc55s69_write
+        .ll_read = usart_lpc55s69_read,
+        .ll_write = usart_lpc55s69_write
     }
 };
 
@@ -57,9 +57,10 @@ struct device* usart_probe(struct bus_device* parent, const void* descriptor)
     dev->usart_base = desc->base;
     
     impl[desc->vendor_id].init(dev, desc);
-    usart_ops.read = impl[desc->vendor_id].read;
-    usart_ops.write = impl[desc->vendor_id].write;
-    
+    usart_ops.ll_read = impl[desc->vendor_id].ll_read;
+    usart_ops.ll_write = impl[desc->vendor_id].ll_write;
+    dev->base.ops = &usart_ops;
+
     return &dev->base;
 }
 

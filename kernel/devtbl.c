@@ -22,7 +22,7 @@ void walk_dt(struct bus_device* parent, const dt_node_t* node)
 {
     struct device* dev;
     if (!parent) { //the first layer is always an 
-        const struct mmio_desc* desc = node->desc;
+        const struct mmio_bus_desc* desc = node->desc;
         dev = device_probe(desc->major, NULL, desc);
     } else {
         dev = parent->bus_ops->probe(parent, node->desc);

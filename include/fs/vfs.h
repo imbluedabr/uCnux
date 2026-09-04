@@ -25,7 +25,7 @@ struct file_ops;
 #define FS_MAKE_PERM(OWNER, GROUP, MODE) ((struct permissions) { .user = OWNER, .group = GROUP, .mode = MODE})
 #define FS_SET_FTYPE(PERM, TYPE) (PERM.mode = (PERM.mode & (07777)) | TYPE)
 #define FS_GET_FTYPE(PERM) (PERM.mode & 070000)
-
+#define FS_GET_FDMODE(MODE) (MODE & 0x3)
 #define VFS_LOOKUP_BASE 1
 
 struct permissions {

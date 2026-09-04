@@ -5,6 +5,7 @@
 #include <drivers/usart.h>
 #include <fs/vfs.h>
 #include <uapi/sys/fcntl.h>
+#include <uapi/sys/errno.h>
 
 struct init_entry {
     volatile uint32_t* clksel_addr;
@@ -125,7 +126,7 @@ void usart_mcxa_interrupt()
 
 void usart_mcxa_init(struct usart_device* usart, const struct mmio_bus_desc* desc)
 {
-    volatile LPUART_Type* lpuart = desc->base;
+    volatile LPUART_Type* lpuart = (volatile LPUART_Type*) desc->base;
     lpuart_init(lpuart);
     register_interrupt(desc->irq, usart, usart_mcxa_interrupt);
     NVIC_SetPriority(desc->irq, 3);
@@ -151,18 +152,18 @@ static inline int readb(struct usart_device* usart)
 }
 
 
-ssize_t usart_mcxa_read(struct file* f, void* buff, size_t count)
+ssize_t usart_mcxa_read(struct device* dev, void* buff, size_t count)
 {
-    struct usart_device* usart = (struct usart_device*) f->i->devfs.dev;
+    struct usart_device* usart = (struct usart_device*) dev;
     uint32_t i;
     for (i = 0; i < count; i++) {
         int c;
-        while ((c = readb(usart)) < 0) {
-            if (f->flags & O_NONBLOCK) return i;
+        if ((c = readb(usart)) < 0) {
+            break;
         }
         ((uint8_t*) buff)[i] = c;
     }
-
+    if (!i) return -EAGAIN;
     return i;
 }
 
@@ -183,16 +184,16 @@ static inline int writeb(struct usart_device* usart, uint8_t val)
     return 0;
 }
 
-ssize_t usart_mcxa_write(struct file* f, const void* buff, size_t count)
+ssize_t usart_mcxa_write(struct device* dev, const void* buff, size_t count)
 {
-    struct usart_device* usart = (struct usart_device*) f->i->devfs.dev;
+    struct usart_device* usart = (struct usart_device*) dev;
     uint32_t i;
     for (i = 0; i < count; i++) {
-        while ((writeb(usart, ((uint8_t*) buff)[i])) < 0) {
-            if (f->flags & O_NONBLOCK) return i;
+        if (writeb(usart, ((uint8_t*) buff)[i]) < 0) {
+            break;
         }
     }
-
+    if (!i) return -EAGAIN;
     return i;   
 }
 

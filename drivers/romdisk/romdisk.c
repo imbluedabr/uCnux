@@ -1,56 +1,61 @@
 #include <drivers/romdisk.h>
 #include <kernel/majors.h>
 #include <uapi/sys/errno.h>
+#include <uapi/sys/fcntl.h>
 #include <uapi/sys/disk.h>
+#include <uapi/unistd.h>
+#include <fs/vfs.h>
 #include <lib/stdlib.h>
 #include <lib/kmalloc.h>
 #include <lib/kprint.h>
 
+#define ALIGN(VAL, AL) ((VAL + (AL - 1)) & -AL)
+
 struct device_driver romdisk_driver = {
-    .create = &romdisk_create,
-    .destroy = &romdisk_destroy,
-    .ioctl = &romdisk_ioctl,
-    .update = &romdisk_update,
-    .name = "romdsk"
+    .probe = romdisk_probe,
+    .name = "romdisk",
+    .bus_accept = BUS_MMIO
+};
+
+static const struct dev_ops romdisk_ops = {
+    .read = romdisk_read,
+    .write = romdisk_write,
+    .lseek = romdisk_lseek,
+    .ioctl = romdisk_ioctl
 };
 
 void romdisk_init()
 {
-    driver_table[ROMDISK_MAJOR] = &romdisk_driver;
+    register_driver(ROMDISK_MAJOR, &romdisk_driver);
 }
 
-struct device* romdisk_create(void* descriptor)
+struct device* romdisk_probe(struct bus_device* parent, const void* descriptor)
 {
-    struct romdisk_desc* desc = descriptor;
-    
+    const struct mmio_bus_desc* desc = descriptor;
     struct romdisk_device* dev = kzalloc(sizeof(struct romdisk_device));
     if (!dev) return NULL;
-    dev->base.driver = &romdisk_driver;
+
+    dev->base.ops = (struct dev_ops*) &romdisk_ops;
     dev->conf = *desc;
-    uint32_t block_count = (desc->rom_end - desc->rom_base)/desc->bsize;
-    uint32_t disk_size = desc->rom_end - desc->rom_base;
-    kdbg("romdsk: BLK_NSEC=%d, BLK_SECSZ=%d, BLK_SZ=%d\n", block_count, desc->bsize, disk_size);
+    uint32_t block_count = desc->size/ROMDISK_BLK_SECSZ;
+
+    kdbg("romdsk: BLK_NSEC=%d, BLK_SECSZ=%d, BLK_SZ=%d\n", block_count, ROMDISK_BLK_SECSZ, desc->size);
     return &dev->base;
 }
 
-int romdisk_destroy(struct device* dev)
+int romdisk_ioctl(struct file* f, int cmd, void* arg)
 {
-    return -ENOSYS;
-}
-
-int romdisk_ioctl(struct device* dev, int op, void* arg)
-{
-    struct romdisk_device* romdisk = (struct romdisk_device*) dev;
+    struct romdisk_device* romdisk = (struct romdisk_device*) f->i->devfs.dev;
     size_t* s_arg = arg;
-    switch(op) {
+    switch(cmd) {
         case IOCTL_BLK_GETSZ:
-            *s_arg = romdisk->conf.rom_end - romdisk->conf.rom_base;
+            *s_arg = romdisk->conf.size;
             break;
         case IOCTL_BLK_GETNSEC:
-            *s_arg = (romdisk->conf.rom_end - romdisk->conf.rom_base)/romdisk->conf.bsize;
+            *s_arg = romdisk->conf.size/ROMDISK_BLK_SECSZ;
             break;
         case IOCTL_BLK_GETSECSZ:
-            *s_arg = romdisk->conf.bsize;
+            *s_arg = ROMDISK_BLK_SECSZ;
             break;
         default:
             return -ENOTTY;
@@ -58,44 +63,36 @@ int romdisk_ioctl(struct device* dev, int op, void* arg)
     return 0;
 }
 
-int read_block(struct romdisk_device* dev, void* buffer, off_t lba)
+ssize_t romdisk_read(struct file* f, void* buff, size_t count)
 {
-    if (lba*dev->conf.bsize >= (off_t)(dev->conf.rom_end - dev->conf.rom_base)) {
-        return -1;
-    }
-    uint8_t* start = ((uint8_t*) dev->conf.rom_base) + lba*dev->conf.bsize;
-    
-    memcpy(buffer, start, dev->conf.bsize);
-    return 0;
+    struct romdisk_device* disk = (struct romdisk_device*) f->i->devfs.dev;
+    count = ALIGN(count, ROMDISK_BLK_SECSZ);
+    if ((f->offset + count) > disk->conf.size) count = disk->conf.size - f->offset;
+    memcpy(buff, disk->conf.base + f->offset, count);
+    return count;
 }
 
-void romdisk_update(struct device* dev)
+ssize_t romdisk_write(struct file* f, const void* buff, size_t count)
 {
-    struct romdisk_device* romdisk = (struct romdisk_device*) dev;
-    struct io_request* req = device_peek_request(dev);
-    if (!req) {
-        return;
-    }
-
-    ssize_t blocks_transfered = romdisk->blocks_transfered;
-
-    if (req->op) {
-        device_finish_request(dev, -EIO);
-        return;
-    }
-    
-    if (read_block(romdisk, req->buffer, req->offset + blocks_transfered) == -1) {
-        kerr("romdisk: read block error! lba=%d\n", req->offset + blocks_transfered);
-        device_finish_request(dev, -EIO);
-        romdisk->blocks_transfered = 0;
-        return;
-    }
-    romdisk->blocks_transfered = blocks_transfered + 1;
-    
-    if (romdisk->blocks_transfered >= req->count) {
-        device_finish_request(dev, romdisk->blocks_transfered);
-        romdisk->blocks_transfered = 0;
-    }
+    return -ENODEV;
 }
+
+off_t romdisk_lseek(struct file* f, off_t offset, int whence)
+{
+    struct romdisk_device* disk = (struct romdisk_device*) f->i->devfs.dev;
+    off_t curr_offset = f->offset;
+    if (whence == SEEK_SET) {
+        curr_offset = offset;
+    } else if (whence == SEEK_CUR) {
+        curr_offset += offset;
+    } else {
+        return  -EINVAL;
+    }
+    if (curr_offset > disk->conf.size/ROMDISK_BLK_SECSZ)
+        return -EINVAL;
+    f->offset = curr_offset;
+    return curr_offset;
+}
+
 
 

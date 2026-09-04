@@ -144,7 +144,7 @@ void file_free(struct file* f)
     inode_free(f->i);
     
     if (file_table_free_top == VFS_MAXFILES)
-    {   //very bad, means memory was leaked
+    {   //very bad, means double free
         thread_panic("vfs: memory leaked in file_free()");
     }
 
@@ -368,7 +368,7 @@ ssize_t vfs_read(int fd, void* buffer, size_t count)
 {
     ssize_t n;
     struct file* f = proc_fd_get(current_process, fd);
-    if (!f || !(f->flags & O_RDONLY)) {
+    if (!f || FS_GET_FDMODE(f->flags) != O_WRONLY) {
         return -EBADF;
     }
 
@@ -387,7 +387,7 @@ ssize_t vfs_read(int fd, void* buffer, size_t count)
 ssize_t vfs_write(int fd, const void* buffer, size_t count)
 {
     struct file* f = proc_fd_get(current_process, fd);
-    if (!f || !(f->flags & O_WRONLY)) {
+    if (!f || FS_GET_FDMODE(f->flags) == O_RDONLY) {
         return -EBADF;
     }
 
@@ -445,15 +445,21 @@ off_t vfs_lseek(int fd, off_t offset, int whence)
     if (!f) return -EBADF;
     
     mutex_lock(&vfs_file_lock);
-    if (whence == SEEK_SET) {
-        f->offset = offset;
-    } else if (whence == SEEK_CUR) {
-        f->offset += offset;
-    } else if (whence == SEEK_END) {
-        f->offset = f->i->size;
+    off_t result;
+    if (f->i->fs->fops->lseek) {
+        result = f->i->fs->fops->lseek(f, offset, whence);
+    } else {
+        if (whence == SEEK_SET) {
+            f->offset = offset;
+        } else if (whence == SEEK_CUR) {
+            f->offset += offset;
+        } else if (whence == SEEK_END) {
+            f->offset = f->i->size;
+        }
+        result = f->offset;
     }
     mutex_unlock(&vfs_file_lock);
-    return f->offset;
+    return result;
 }
 
 int vfs_ioctl(int fd, int cmd, void* arg)
@@ -463,8 +469,8 @@ int vfs_ioctl(int fd, int cmd, void* arg)
 
     struct inode* i = f->i;
     if (FS_GET_FTYPE(i->perm) != S_IFDEV) return -ENODEV;
-
-    return i->devfs.dev->driver->ioctl(i->devfs.dev, cmd, arg);
+    if (!i->devfs.dev->ops->ioctl) return -ENOTTY;
+    return i->devfs.dev->ops->ioctl(f, cmd, arg);
 }
 
 int vfs_access(const char* path, int mode)

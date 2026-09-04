@@ -298,8 +298,10 @@ pid_t sys_waitpid(pid_t pid, int* wstatus, int options)
     if (child_count == 0) {
         return -ECHILD;
     }
+    if (current_process->exit_code == SIGCHLD) goto skip;
     proc_block(current_process);
     current_process->exit_code = 0;
+skip:
     mutex_lock(&proc_acces_lock);
     p = proc_active_list;
     while(p) {

@@ -24,12 +24,10 @@ struct usart_device {
 
 void usart_init();
 struct device* usart_probe(struct bus_device* parent, const void* descriptor);
-ssize_t usart_read(struct file* f, void* buff, size_t count);
-ssize_t usart_write(struct file* f, const void* buff, size_t count);
 
 struct usart_impl {
     void (*init)(struct usart_device* usart, const struct mmio_bus_desc* desc);
-    ssize_t (*read)(struct file* f, void* buff, size_t count);
-    ssize_t (*write)(struct file* f, const void* buff, size_t count);
+    ssize_t (*ll_read)(struct device* dev, void* buff, size_t count);
+    ssize_t (*ll_write)(struct device* dev, const void* buff, size_t count);
 };
 

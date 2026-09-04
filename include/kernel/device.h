@@ -17,7 +17,8 @@ enum bus_types : uint8_t {
 
 //bus device descriptors, contains info about the location and type of the device on the bus
 struct mmio_bus_desc {
-    void* base;
+    uint8_t* base;
+    size_t size;
     uint16_t vendor_id;
     uint8_t major;
     uint8_t irq;
@@ -45,6 +46,11 @@ struct dev_ops {
     int (*ioctl)(struct file* f, int cmd, void* arg);
     int (*open)(struct device* dev, struct file* f);
     int (*release)(struct device* dev, struct file* f);
+
+    //low level interface, very shitty code since i waste even more bytes here but it works for now
+    //should act like O_NONBLOCK is set
+    ssize_t (*ll_read)(struct device* dev, void* buff, size_t count);
+    ssize_t (*ll_write)(struct device* dev, const void* buff, size_t count);
 };
 
 struct device {

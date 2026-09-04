@@ -40,6 +40,8 @@ struct device* device_probe(uint8_t major, struct bus_device* parent, const void
 
     struct device* dev = drv->probe(parent, desc);
     if (!dev) return NULL;
+    dev->driver = drv;
+    dev->parent = parent;
     dev->minor = drv->instance_count++;
     dev->next = drv->instances;
     drv->instances = dev;

@@ -166,7 +166,7 @@ void proc_sched_new_task()
     current_process = p;
 }
 
-[[noreturn]] void proc_start_scheduling()
+[[noreturn]] inline void proc_start_scheduling()
 {
     __disable_irq();
     current_process = proc_dequeue();
